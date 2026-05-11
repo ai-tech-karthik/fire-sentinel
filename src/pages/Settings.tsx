@@ -38,8 +38,23 @@ export default function Settings() {
 
   const loadSettings = async () => {
     try {
-      const data = await settingsApi.getFormData();
-      setSettings(data);
+      const data = await settingsApi.get();
+      setSettings({
+        price_check_frequency: data.price_check_frequency || 300,
+        news_check_frequency: data.news_check_frequency || 600,
+        default_profit_target: 20,
+        default_stop_loss: 10,
+        alert_email_enabled: data.email_enabled || false,
+        alert_email_address: data.email_address || '',
+        alert_slack_enabled: data.slack_enabled || false,
+        alert_slack_webhook: data.slack_webhook_url || '',
+        alert_sms_enabled: data.sms_enabled || false,
+        alert_sms_phone: data.sms_phone_number || '',
+        api_alpha_vantage_key: data.alpha_vantage_api_key || '',
+        api_yahoo_finance_key: '',
+        api_genai_platform: data.gen_ai_platform || 'openai',
+        api_genai_key: data.gen_ai_api_key || '',
+      });
     } catch (error) {
       console.error('Error loading settings:', error);
       toast.error('Failed to load settings');
@@ -51,21 +66,18 @@ export default function Settings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await settingsApi.updateMultiple({
-        price_check_frequency: settings.price_check_frequency.toString(),
-        news_check_frequency: settings.news_check_frequency.toString(),
-        default_profit_target: settings.default_profit_target.toString(),
-        default_stop_loss: settings.default_stop_loss.toString(),
-        alert_email_enabled: settings.alert_email_enabled.toString(),
-        alert_email_address: settings.alert_email_address,
-        alert_slack_enabled: settings.alert_slack_enabled.toString(),
-        alert_slack_webhook: settings.alert_slack_webhook,
-        alert_sms_enabled: settings.alert_sms_enabled.toString(),
-        alert_sms_phone: settings.alert_sms_phone,
-        api_alpha_vantage_key: settings.api_alpha_vantage_key,
-        api_yahoo_finance_key: settings.api_yahoo_finance_key,
-        api_genai_platform: settings.api_genai_platform,
-        api_genai_key: settings.api_genai_key,
+      await settingsApi.update({
+        price_check_frequency: settings.price_check_frequency,
+        news_check_frequency: settings.news_check_frequency,
+        email_enabled: settings.alert_email_enabled,
+        email_address: settings.alert_email_address,
+        slack_enabled: settings.alert_slack_enabled,
+        slack_webhook_url: settings.alert_slack_webhook,
+        sms_enabled: settings.alert_sms_enabled,
+        sms_phone_number: settings.alert_sms_phone,
+        alpha_vantage_api_key: settings.api_alpha_vantage_key,
+        gen_ai_platform: settings.api_genai_platform as 'openai' | 'anthropic' | 'google',
+        gen_ai_api_key: settings.api_genai_key,
       });
       toast.success('Settings saved successfully');
     } catch (error) {

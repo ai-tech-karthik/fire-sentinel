@@ -1,122 +1,101 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-// @ts-ignore
-import { supabase } from '@/db/supabase';
-import type { User } from '@supabase/supabase-js';
-// @ts-ignore
-import type { Profile } from '@/types/types';
+import { authApi } from '@/services/api';
 import { toast } from 'sonner';
 
-export async function getProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('获取用户信息失败:', error);
-    return null;
-  }
-  return data;
+interface User {
+  id: string;
+  email: string;
+  name: string;
 }
+
 interface AuthContextType {
   user: User | null;
-  profile: Profile | null;
   loading: boolean;
-  signInWithUsername: (username: string, password: string) => Promise<{ error: Error | null }>;
-  signUpWithUsername: (username: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshProfile = async () => {
-    if (!user) {
-      setProfile(null);
-      return;
-    }
-
-    const profileData = await getProfile(user.id);
-    setProfile(profileData);
-  };
-
   useEffect(() => {
-    supabase
-      .auth
-      .getSession()
-      // @ts-ignore
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          getProfile(session.user.id).then(setProfile);
+    // Check if user is already logged in
+    const checkAuth = async () => {
+      try {
+        if (authApi.isAuthenticated()) {
+          const data = await authApi.getCurrentUser();
+          setUser(data.user);
         }
-      })
-      // @ts-ignore
-      .catch(error => {
-        toast.error(`获取用户信息失败: ${error.message}`);
-      })
-      .finally(() => {
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        authApi.logout();
+      } finally {
         setLoading(false);
-      });
-
-    // @ts-ignore
-    // In this function, do NOT use any await calls. Use `.then()` instead to avoid deadlocks.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        getProfile(session.user.id).then(setProfile);
-      } else {
-        setProfile(null);
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    checkAuth();
   }, []);
 
-  const signInWithUsername = async (username: string, password: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
-      const email = `${username}@miaoda.com`;
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
+      const data = await authApi.login(email, password);
+      setUser(data.user);
+      toast.success('Logged in successfully');
       return { error: null };
     } catch (error) {
-      return { error: error as Error };
+      const err = error as Error;
+      toast.error(err.message || 'Login failed');
+      return { error: err };
     }
   };
 
-  const signUpWithUsername = async (username: string, password: string) => {
+  const signUp = async (email: string, password: string, name?: string) => {
     try {
-      const email = `${username}@miaoda.com`;
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) throw error;
+      const data = await authApi.register(email, password, name);
+      setUser(data.user);
+      toast.success('Account created successfully');
       return { error: null };
     } catch (error) {
-      return { error: error as Error };
+      const err = error as Error;
+      toast.error(err.message || 'Registration failed');
+      return { error: err };
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    authApi.logout();
     setUser(null);
-    setProfile(null);
+    toast.success('Logged out successfully');
+  };
+
+  const refreshUser = async () => {
+    try {
+      if (authApi.isAuthenticated()) {
+        const data = await authApi.getCurrentUser();
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signInWithUsername, signUpWithUsername, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

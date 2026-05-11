@@ -87,7 +87,7 @@ export function PriceAlertsManager({ stockId, symbol, currentPrice }: PriceAlert
 
   const handleToggleEnabled = async (id: string, enabled: boolean) => {
     try {
-      await priceAlertsApi.toggleEnabled(id, enabled);
+      await priceAlertsApi.toggle(id, enabled);
       toast.success(`Price alert ${enabled ? 'enabled' : 'disabled'}`);
       await loadPriceAlerts();
     } catch (error) {
@@ -98,7 +98,7 @@ export function PriceAlertsManager({ stockId, symbol, currentPrice }: PriceAlert
 
   const handleResetTriggered = async (id: string) => {
     try {
-      await priceAlertsApi.resetTriggered(id);
+      await priceAlertsApi.reset(id);
       toast.success('Price alert re-enabled');
       await loadPriceAlerts();
     } catch (error) {

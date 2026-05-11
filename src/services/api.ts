@@ -1,4 +1,3 @@
-import { supabase } from '@/db/supabase';
 import type {
   Account,
   Stock,
@@ -12,391 +11,296 @@ import type {
   PriceAlertFormData,
 } from '@/types/types';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+// Get auth token
+const getAuthToken = () => localStorage.getItem('auth_token');
+
+// Generic fetch wrapper
+const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {}),
+  };
+  
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+  
+  return response.json();
+};
+
 // Account operations
 export const accountsApi = {
   async getAll(): Promise<Account[]> {
-    const { data, error } = await supabase
-      .from('accounts')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
+    const data = await apiFetch('/accounts');
     return Array.isArray(data) ? data : [];
   },
 
   async create(account: AccountFormData): Promise<Account> {
-    const { data, error } = await supabase
-      .from('accounts')
-      .insert(account)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) throw new Error('Failed to create account');
-    return data;
+    return apiFetch('/accounts', {
+      method: 'POST',
+      body: JSON.stringify(account),
+    });
   },
 
   async update(id: string, account: Partial<AccountFormData>): Promise<Account> {
-    const { data, error } = await supabase
-      .from('accounts')
-      .update(account)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) throw new Error('Failed to update account');
-    return data;
+    return apiFetch(`/accounts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(account),
+    });
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('accounts')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
+    await apiFetch(`/accounts/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 
 // Stock operations
 export const stocksApi = {
   async getAll(): Promise<Stock[]> {
-    const { data, error } = await supabase
-      .from('stocks')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
+    const data = await apiFetch('/stocks');
     return Array.isArray(data) ? data : [];
   },
 
   async getByAccount(accountId: string): Promise<Stock[]> {
-    const { data, error } = await supabase
-      .from('stocks')
-      .select('*')
-      .eq('account_id', accountId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
+    const data = await apiFetch(`/stocks/account/${accountId}`);
     return Array.isArray(data) ? data : [];
   },
 
   async create(stock: StockFormData): Promise<Stock> {
-    const { data, error } = await supabase
-      .from('stocks')
-      .insert(stock)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) throw new Error('Failed to create stock');
-    return data;
+    return apiFetch('/stocks', {
+      method: 'POST',
+      body: JSON.stringify(stock),
+    });
   },
 
   async update(id: string, stock: Partial<StockFormData>): Promise<Stock> {
-    const { data, error } = await supabase
-      .from('stocks')
-      .update(stock)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) throw new Error('Failed to update stock');
-    return data;
+    return apiFetch(`/stocks/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(stock),
+    });
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('stocks')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
+    await apiFetch(`/stocks/${id}`, {
+      method: 'DELETE',
+    });
   },
 
   async updatePrice(id: string, price: number): Promise<void> {
-    const { error } = await supabase
-      .from('stocks')
-      .update({ 
-        current_price: price,
-        last_price_update: new Date().toISOString()
-      })
-      .eq('id', id);
-    
-    if (error) throw error;
+    await apiFetch(`/stocks/${id}/price`, {
+      method: 'PATCH',
+      body: JSON.stringify({ current_price: price }),
+    });
   },
 };
 
 // Alert operations
 export const alertsApi = {
   async getAll(limit?: number): Promise<Alert[]> {
-    let query = supabase
-      .from('alerts')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
     
-    if (limit) {
-      query = query.limit(limit);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
+    const data = await apiFetch(`/alerts?${params.toString()}`);
+    return data.alerts || [];
+  },
+
+  async getRecent(limit: number = 10): Promise<Alert[]> {
+    const data = await apiFetch(`/alerts/recent?limit=${limit}`);
     return Array.isArray(data) ? data : [];
   },
 
-  async getBySymbol(symbol: string): Promise<Alert[]> {
-    const { data, error } = await supabase
-      .from('alerts')
-      .select('*')
-      .eq('symbol', symbol)
-      .order('created_at', { ascending: false });
+  async getBySymbol(symbol: string, limit?: number): Promise<Alert[]> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
     
-    if (error) throw error;
+    const data = await apiFetch(`/alerts/symbol/${symbol}?${params.toString()}`);
     return Array.isArray(data) ? data : [];
   },
 
-  async create(alert: Omit<Alert, 'id' | 'created_at'>): Promise<Alert> {
-    const { data, error } = await supabase
-      .from('alerts')
-      .insert(alert)
-      .select()
-      .maybeSingle();
+  async getByStock(stockId: string, limit?: number): Promise<Alert[]> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
     
-    if (error) throw error;
-    if (!data) throw new Error('Failed to create alert');
-    return data;
+    const data = await apiFetch(`/alerts/stock/${stockId}?${params.toString()}`);
+    return Array.isArray(data) ? data : [];
+  },
+
+  async getFiltered(filters: {
+    symbol?: string;
+    alert_type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ alerts: Alert[]; total: number }> {
+    const params = new URLSearchParams();
+    if (filters.symbol) params.append('symbol', filters.symbol);
+    if (filters.alert_type) params.append('alert_type', filters.alert_type);
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.offset) params.append('offset', filters.offset.toString());
+    
+    return apiFetch(`/alerts?${params.toString()}`);
+  },
+
+  async delete(id: string): Promise<void> {
+    await apiFetch(`/alerts/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 
 // News operations
 export const newsApi = {
   async getAll(limit?: number): Promise<News[]> {
-    let query = supabase
-      .from('news')
-      .select('*')
-      .order('published_at', { ascending: false });
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
     
-    if (limit) {
-      query = query.limit(limit);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
+    const data = await apiFetch(`/news?${params.toString()}`);
+    return data.news || [];
+  },
+
+  async getRecent(limit: number = 10): Promise<News[]> {
+    const data = await apiFetch(`/news/recent?limit=${limit}`);
     return Array.isArray(data) ? data : [];
   },
 
   async getBySymbol(symbol: string, limit?: number): Promise<News[]> {
-    let query = supabase
-      .from('news')
-      .select('*')
-      .eq('symbol', symbol)
-      .order('published_at', { ascending: false });
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
     
-    if (limit) {
-      query = query.limit(limit);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) throw error;
+    const data = await apiFetch(`/news/symbol/${symbol}?${params.toString()}`);
     return Array.isArray(data) ? data : [];
   },
 
-  async create(news: Omit<News, 'id' | 'created_at'>): Promise<News> {
-    const { data, error } = await supabase
-      .from('news')
-      .insert(news)
-      .select()
-      .maybeSingle();
+  async getFiltered(filters: {
+    symbol?: string;
+    sentiment_label?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ news: News[]; total: number }> {
+    const params = new URLSearchParams();
+    if (filters.symbol) params.append('symbol', filters.symbol);
+    if (filters.sentiment_label) params.append('sentiment_label', filters.sentiment_label);
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.offset) params.append('offset', filters.offset.toString());
     
-    if (error) throw error;
-    if (!data) throw new Error('Failed to create news');
-    return data;
+    return apiFetch(`/news?${params.toString()}`);
+  },
+
+  async delete(id: string): Promise<void> {
+    await apiFetch(`/news/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 
 // Settings operations
 export const settingsApi = {
-  async getAll(): Promise<Settings[]> {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('*');
-    
-    if (error) throw error;
-    return Array.isArray(data) ? data : [];
+  async get(): Promise<Settings> {
+    return apiFetch('/settings');
   },
 
-  async get(key: string): Promise<string | null> {
-    const { data, error } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', key)
-      .maybeSingle();
-    
-    if (error) throw error;
-    return data?.value || null;
-  },
-
-  async set(key: string, value: string): Promise<void> {
-    const { error } = await supabase
-      .from('settings')
-      .update({ value })
-      .eq('key', key);
-    
-    if (error) throw error;
-  },
-
-  async updateMultiple(settings: Record<string, string>): Promise<void> {
-    const updates = Object.entries(settings).map(([key, value]) => ({
-      key,
-      value,
-    }));
-
-    for (const update of updates) {
-      await this.set(update.key, update.value);
-    }
-  },
-
-  async getFormData(): Promise<SettingsFormData> {
-    const settings = await this.getAll();
-    const settingsMap = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value;
-      return acc;
-    }, {} as Record<string, string>);
-
-    return {
-      price_check_frequency: Number(settingsMap.price_check_frequency) || 300,
-      news_check_frequency: Number(settingsMap.news_check_frequency) || 600,
-      default_profit_target: Number(settingsMap.default_profit_target) || 20,
-      default_stop_loss: Number(settingsMap.default_stop_loss) || 10,
-      alert_email_enabled: settingsMap.alert_email_enabled === 'true',
-      alert_email_address: settingsMap.alert_email_address || '',
-      alert_slack_enabled: settingsMap.alert_slack_enabled === 'true',
-      alert_slack_webhook: settingsMap.alert_slack_webhook || '',
-      alert_sms_enabled: settingsMap.alert_sms_enabled === 'true',
-      alert_sms_phone: settingsMap.alert_sms_phone || '',
-      api_alpha_vantage_key: settingsMap.api_alpha_vantage_key || '',
-      api_yahoo_finance_key: settingsMap.api_yahoo_finance_key || '',
-      api_genai_platform: settingsMap.api_genai_platform || 'openai',
-      api_genai_key: settingsMap.api_genai_key || '',
-    };
+  async update(settings: Partial<Settings>): Promise<Settings> {
+    return apiFetch('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
   },
 };
 
-// Price Alerts operations
+// Price Alert operations
 export const priceAlertsApi = {
   async getAll(): Promise<PriceAlert[]> {
-    const { data, error } = await supabase
-      .from('price_alerts')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
+    const data = await apiFetch('/price-alerts');
     return Array.isArray(data) ? data : [];
   },
 
   async getByStock(stockId: string): Promise<PriceAlert[]> {
-    const { data, error } = await supabase
-      .from('price_alerts')
-      .select('*')
-      .eq('stock_id', stockId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
+    const data = await apiFetch(`/price-alerts/stock/${stockId}`);
     return Array.isArray(data) ? data : [];
   },
 
   async getBySymbol(symbol: string): Promise<PriceAlert[]> {
-    const { data, error } = await supabase
-      .from('price_alerts')
-      .select('*')
-      .eq('symbol', symbol)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return Array.isArray(data) ? data : [];
-  },
-
-  async getEnabled(): Promise<PriceAlert[]> {
-    const { data, error } = await supabase
-      .from('price_alerts')
-      .select('*')
-      .eq('enabled', true)
-      .is('triggered_at', null)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
+    const data = await apiFetch(`/price-alerts/symbol/${symbol}`);
     return Array.isArray(data) ? data : [];
   },
 
   async create(priceAlert: PriceAlertFormData): Promise<PriceAlert> {
-    const { data, error } = await supabase
-      .from('price_alerts')
-      .insert(priceAlert)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) throw new Error('Failed to create price alert');
-    return data;
+    return apiFetch('/price-alerts', {
+      method: 'POST',
+      body: JSON.stringify(priceAlert),
+    });
   },
 
   async update(id: string, priceAlert: Partial<PriceAlertFormData>): Promise<PriceAlert> {
-    const { data, error } = await supabase
-      .from('price_alerts')
-      .update(priceAlert)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) throw new Error('Failed to update price alert');
-    return data;
+    return apiFetch(`/price-alerts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(priceAlert),
+    });
+  },
+
+  async toggle(id: string, enabled: boolean): Promise<PriceAlert> {
+    return apiFetch(`/price-alerts/${id}/toggle`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled }),
+    });
+  },
+
+  async reset(id: string): Promise<PriceAlert> {
+    return apiFetch(`/price-alerts/${id}/reset`, {
+      method: 'PATCH',
+    });
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('price_alerts')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
+    await apiFetch(`/price-alerts/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Auth operations
+export const authApi = {
+  async login(email: string, password: string) {
+    const data = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    localStorage.setItem('auth_token', data.token);
+    return data;
   },
 
-  async toggleEnabled(id: string, enabled: boolean): Promise<void> {
-    const { error } = await supabase
-      .from('price_alerts')
-      .update({ enabled })
-      .eq('id', id);
-    
-    if (error) throw error;
+  async register(email: string, password: string, name?: string) {
+    const data = await apiFetch('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name }),
+    });
+    localStorage.setItem('auth_token', data.token);
+    return data;
   },
 
-  async markTriggered(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('price_alerts')
-      .update({ 
-        enabled: false,
-        triggered_at: new Date().toISOString()
-      })
-      .eq('id', id);
-    
-    if (error) throw error;
+  async getCurrentUser() {
+    return apiFetch('/auth/me');
   },
 
-  async resetTriggered(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('price_alerts')
-      .update({ 
-        enabled: true,
-        triggered_at: null
-      })
-      .eq('id', id);
-    
-    if (error) throw error;
+  logout() {
+    localStorage.removeItem('auth_token');
+  },
+
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem('auth_token');
   },
 };

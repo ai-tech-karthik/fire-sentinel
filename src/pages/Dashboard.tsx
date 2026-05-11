@@ -5,7 +5,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { accountsApi, stocksApi, alertsApi, newsApi } from '@/services/api';
 import { PriceChangeIndicator, SentimentBadge } from '@/components/common/Indicators';
-import { supabase } from '@/db/supabase';
 import { RefreshCw, TrendingUp, DollarSign, Percent, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -93,8 +92,15 @@ export default function Dashboard() {
   const handleRefreshPrices = async () => {
     setRefreshing(true);
     try {
-      const { error } = await supabase.functions.invoke('price-monitor');
-      if (error) throw error;
+      // Trigger price monitor job via backend API
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/jobs/price-monitor`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to trigger price monitor');
       
       toast.success('Prices updated successfully');
       await loadData();

@@ -8,7 +8,6 @@ import { newsApi, stocksApi } from '@/services/api';
 import { SentimentBadge } from '@/components/common/Indicators';
 import { ExternalLink, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/db/supabase';
 import type { News } from '@/types/types';
 
 export default function NewsPage() {
@@ -42,8 +41,15 @@ export default function NewsPage() {
   const handleRefreshNews = async () => {
     setRefreshing(true);
     try {
-      const { error } = await supabase.functions.invoke('news-monitor');
-      if (error) throw error;
+      // Trigger news monitor job via backend API
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/jobs/news-monitor`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to trigger news monitor');
       
       toast.success('News updated successfully');
       await loadNews();

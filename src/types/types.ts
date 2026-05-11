@@ -66,8 +66,18 @@ export interface News {
 
 export interface Settings {
   id: string;
-  key: string;
-  value: string;
+  user_id: string;
+  price_check_frequency: number;
+  news_check_frequency: number;
+  email_enabled: boolean;
+  email_address: string;
+  slack_enabled: boolean;
+  slack_webhook_url: string;
+  sms_enabled: boolean;
+  sms_phone_number: string;
+  alpha_vantage_api_key: string;
+  gen_ai_platform: 'openai' | 'anthropic' | 'google';
+  gen_ai_api_key: string;
   created_at: string;
   updated_at: string;
 }

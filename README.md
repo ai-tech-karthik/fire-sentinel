@@ -1,37 +1,72 @@
 # FIRE Sentinel - Portfolio Monitoring Application
 
-FIRE Sentinel is a comprehensive portfolio monitoring application designed to help investors track their investments across multiple brokerage accounts. The system monitors stock prices in real-time, analyzes news sentiment, and sends automated alerts when predefined thresholds are met.
+FIRE Sentinel is a comprehensive, self-contained portfolio monitoring application designed to help investors track their investments across multiple brokerage accounts. The system monitors stock prices in real-time, analyzes news sentiment, and sends automated alerts when predefined thresholds are met.
+
+**🐳 Now with Docker support for easy, self-contained deployment!**
 
 ## 🚀 Quick Start
 
-### For Mac Users
+### Option 1: Docker (Recommended - Easiest Setup)
+
+**Prerequisites**: Docker and Docker Compose installed
+
+```bash
+# Clone repository
+git clone https://github.com/ai-tech-karthik/fire-sentinel.git
+cd fire-sentinel
+
+# Start all services (PostgreSQL, Backend, Frontend)
+docker-compose up -d
+
+# Access the application
+open http://localhost:5173
+```
+
+**Default Login**:
+- Email: `admin@fire-sentinel.local`
+- Password: `admin123`
+
+⚠️ **Change the default password immediately after first login!**
+
+See **[DOCKER_SETUP_GUIDE.md](DOCKER_SETUP_GUIDE.md)** for complete Docker documentation.
+
+### Option 2: Local Development (Mac)
 
 See **[MAC_INSTALLATION_GUIDE.md](MAC_INSTALLATION_GUIDE.md)** for detailed installation instructions.
 
 **Quick Install**:
 ```bash
+# Install Node.js
 brew install node
+
+# Clone and setup
 git clone https://github.com/ai-tech-karthik/fire-sentinel.git
 cd fire-sentinel
+
+# Start database (Docker)
+docker-compose up -d postgres
+
+# Start backend
+cd backend
+npm install
+npm run dev
+
+# Start frontend (in new terminal)
+cd ..
 npm install
 npm run dev
 ```
 
 Then open http://localhost:5173 in your browser.
 
-### For Other Platforms
-
-- **Windows**: Install Node.js from [nodejs.org](https://nodejs.org/), then follow similar steps
-- **Linux**: Use your package manager to install Node.js, then follow similar steps
-
 ## 📚 Documentation
 
+- **[DOCKER_SETUP_GUIDE.md](DOCKER_SETUP_GUIDE.md)**: Complete Docker setup and deployment guide
 - **[MAC_INSTALLATION_GUIDE.md](MAC_INSTALLATION_GUIDE.md)**: Complete Mac installation guide
 - **[QUICK_START_MAC.md](QUICK_START_MAC.md)**: Get running in 5 minutes
 - **[GITHUB_SETUP_GUIDE.md](GITHUB_SETUP_GUIDE.md)**: Set up GitHub repository
 - **[API_CONFIGURATION_GUIDE.md](API_CONFIGURATION_GUIDE.md)**: Configure API keys
 - **[CUSTOM_PRICE_ALERTS_GUIDE.md](CUSTOM_PRICE_ALERTS_GUIDE.md)**: Use custom price alerts
-- **[EDGE_FUNCTIONS.md](EDGE_FUNCTIONS.md)**: Technical documentation
 
 ## Features
 
@@ -210,11 +245,28 @@ Export your portfolio data as CSV:
 
 ## Technical Details
 
-- **Frontend**: React + TypeScript + Tailwind CSS + shadcn/ui
-- **Backend**: Supabase (PostgreSQL database + Edge Functions)
+### Architecture
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS + shadcn/ui
+- **Backend**: Express.js + Node.js + TypeScript
+- **Database**: PostgreSQL 15
+- **Authentication**: JWT-based authentication with bcrypt
+- **Deployment**: Docker + Docker Compose
+- **Scheduled Jobs**: node-cron for price and news monitoring
+
+### External APIs
 - **Price Data**: Alpha Vantage API (primary) + Yahoo Finance API (fallback)
-- **News Source**: Google News RSS
-- **Sentiment Analysis**: Custom sentiment scoring algorithm
+- **News Source**: Google News RSS feeds
+- **Sentiment Analysis**: OpenAI GPT / Anthropic Claude / Google Gemini (configurable)
+- **Notifications**: Email / Slack / SMS (configurable)
+
+### Key Features
+- ✅ Self-contained deployment with Docker
+- ✅ No cloud dependencies (runs completely locally)
+- ✅ Automated price monitoring with configurable frequency
+- ✅ AI-powered sentiment analysis
+- ✅ Multi-channel alert delivery
+- ✅ Custom price alerts with directional triggers
+- ✅ Comprehensive portfolio tracking
 
 ## Support
 
