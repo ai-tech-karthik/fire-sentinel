@@ -1,152 +1,234 @@
-# Quick Start Guide - Mac
+# FIRE Sentinel - Quick Start Guide (Mac)
 
-## TL;DR - Get Running in 5 Minutes
+Get FIRE Sentinel running on your Mac in 5 minutes!
 
-### Prerequisites
-- Mac with macOS 10.15 or later
-- Internet connection
+## Prerequisites
 
-### Installation Commands
+- macOS 10.15 or later
+- 8GB RAM minimum
+- 2GB free disk space
 
-Open Terminal (Applications > Utilities > Terminal) and run these commands:
+## Quick Start (Docker - Recommended)
+
+### 1. Install Docker Desktop
+
+Download and install from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)
+
+### 2. Install Git (if needed)
 
 ```bash
-# 1. Install Homebrew (if needed) - paste this entire line
+# Check if Git is installed
+git --version
+
+# If not, install via Homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install git
+```
 
-# 2. Install Node.js
-brew install node
+### 3. Clone and Start
 
-# 3. Navigate to where you want to install (e.g., Documents folder)
-cd ~/Documents
-
-# 4. Clone repository
+```bash
+# Clone repository
 git clone https://github.com/ai-tech-karthik/fire-sentinel.git
 cd fire-sentinel
 
-# 5. Install dependencies (this takes 2-3 minutes)
-npm install
+# Start all services
+docker-compose up -d
 
-# 6. Create environment file
-cp .env.example .env
-
-# 7. Edit .env file with your Supabase credentials
-open -e .env
+# Wait 1-2 minutes for services to start
 ```
 
-### Configure .env File
+### 4. Access Application
 
-When the text editor opens, replace these values:
+Open browser to: **http://localhost:5173**
 
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-```
+### 5. Login
 
-**Where to get these**:
-1. Go to https://app.supabase.com/
-2. Select your project
-3. Click Settings > API
-4. Copy "Project URL" and "anon public" key
+- **Email**: `admin@fire-sentinel.local`
+- **Password**: `admin123`
 
-Save and close the file.
+⚠️ **Change password immediately after first login!**
 
-### Start the Application
+---
+
+## Alternative: Development Mode
+
+### 1. Install Prerequisites
 
 ```bash
-npm run dev
-```
-
-You should see:
-```
-➜  Local:   http://localhost:5173/
-```
-
-### Access the App
-
-Open your browser to: **http://localhost:5173**
-
-### First-Time Setup (In the App)
-
-1. **Settings Page**:
-   - Add Alpha Vantage API key (get free at https://www.alphavantage.co/support/#api-key)
-   - Configure monitoring frequencies
-   - Set up alert delivery (optional)
-
-2. **Portfolio Management Page**:
-   - Click "Add Account" → Enter account name
-   - Click "Add Stock" → Enter symbol, quantity, bought price
-
-3. **Dashboard**:
-   - Click "Refresh Prices" to update stock prices
-   - View your portfolio summary
-
-Done! 🎉
-
-## Daily Usage
-
-### Start the App
-```bash
-cd ~/Documents/fire-sentinel
-npm run dev
-```
-
-Open browser to: http://localhost:5173
-
-### Stop the App
-Press `Ctrl + C` in Terminal
-
-## Common Issues & Quick Fixes
-
-### "Port 5173 is already in use"
-```bash
-kill -9 $(lsof -ti:5173)
-npm run dev
-```
-
-### "Cannot find module"
-```bash
-rm -rf node_modules package-lock.json
-npm install
-npm run dev
-```
-
-### "Failed to connect to Supabase"
-- Check `.env` file has correct URL and key
-- Verify Supabase project is active at https://app.supabase.com/
-- Check internet connection
-
-### "Command not found: npm"
-```bash
-brew install node
-```
-
-### "Command not found: brew"
-```bash
+# Install Homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Node.js and Git
+brew install node git
+
+# Install Docker Desktop (see step 1 above)
 ```
 
-## Need More Help?
+### 2. Clone Repository
 
-- **Detailed Guide**: See [MAC_INSTALLATION_GUIDE.md](MAC_INSTALLATION_GUIDE.md)
-- **API Setup**: See [API_CONFIGURATION_GUIDE.md](API_CONFIGURATION_GUIDE.md)
-- **GitHub Setup**: See [GITHUB_SETUP_GUIDE.md](GITHUB_SETUP_GUIDE.md)
+```bash
+git clone https://github.com/ai-tech-karthik/fire-sentinel.git
+cd fire-sentinel
+```
 
-## Tips
+### 3. Start Database
 
-- **Bookmark** http://localhost:5173 in your browser
-- **Keep Terminal open** while using the app
-- **Update regularly**: `git pull && npm install`
-- **Check logs** in Terminal if something doesn't work
+```bash
+docker-compose up -d postgres
+```
 
-## What's Next?
+### 4. Start Backend
 
-After setup:
-1. ✅ Add your brokerage accounts
-2. ✅ Add stocks to track
-3. ✅ Set custom price alerts
-4. ✅ Configure alert delivery
-5. ✅ Monitor your portfolio daily
+```bash
+cd backend
+npm install
+npm run dev
+```
 
-Happy investing! 📈
+### 5. Start Frontend (New Terminal)
 
+```bash
+cd fire-sentinel
+npm install
+npm run dev
+```
+
+### 6. Access Application
+
+Open browser to: **http://localhost:5173**
+
+---
+
+## Verify Installation
+
+### Check Services
+
+```bash
+# Docker mode
+docker-compose ps
+
+# Should show:
+# postgres - Up
+# backend  - Up
+# frontend - Up
+```
+
+### Check Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+```
+
+---
+
+## Common Commands
+
+### Start Services
+
+```bash
+docker-compose up -d
+```
+
+### Stop Services
+
+```bash
+docker-compose down
+```
+
+### Restart Services
+
+```bash
+docker-compose restart
+```
+
+### View Logs
+
+```bash
+docker-compose logs -f
+```
+
+### Rebuild After Changes
+
+```bash
+docker-compose up -d --build
+```
+
+---
+
+## Next Steps
+
+1. **Change Password**
+   - Login with default credentials
+   - Go to Settings
+   - Update password
+
+2. **Configure API Keys**
+   - Get Alpha Vantage API key: [alphavantage.co](https://www.alphavantage.co/support/#api-key)
+   - Get OpenAI/Anthropic/Google API key
+   - Add keys in Settings page
+
+3. **Add Portfolio**
+   - Create brokerage accounts
+   - Add stock positions
+   - Set profit targets and stop losses
+
+4. **Set Up Alerts**
+   - Configure email/Slack/SMS
+   - Set monitoring frequencies
+   - Test alert delivery
+
+---
+
+## Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Find and kill process
+lsof -i :5173  # Frontend
+lsof -i :3001  # Backend
+kill -9 <PID>
+```
+
+### Services Won't Start
+
+```bash
+# Reset everything
+docker-compose down -v
+docker-compose up -d --build
+```
+
+### Can't Access Application
+
+1. Check services are running: `docker-compose ps`
+2. Check logs: `docker-compose logs -f`
+3. Verify URL: `http://localhost:5173`
+
+---
+
+## Full Documentation
+
+For detailed instructions, see:
+
+- **Installation Guide**: `MAC_INSTALLATION_GUIDE.md`
+- **Docker Guide**: `DOCKER_SETUP_GUIDE.md`
+- **Testing Guide**: `TESTING_GUIDE.md`
+- **API Documentation**: `MIGRATION_COMPLETE.md`
+
+---
+
+## Support
+
+- Check logs: `docker-compose logs -f`
+- Review documentation
+- Open GitHub issue
+
+---
+
+**Version**: 8.0 (Docker Migration)
+**Time to Setup**: 5 minutes
